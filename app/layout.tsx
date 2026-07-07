@@ -16,13 +16,14 @@ export const metadata: Metadata = {
   title: "Frisson",
   applicationName: "Frisson",
   description: "Frisson is a curated listening space for discovering and sharing songs.",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Frisson",
   },
   icons: {
-    icon: "/icon.png",
-    apple: "/apple-icon.png",
+    icon: [{ url: "/icon.png", type: "image/png", sizes: "1024x1024" }],
+    apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
   },
 };
 
