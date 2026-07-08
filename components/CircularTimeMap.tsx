@@ -14,6 +14,7 @@ import {
   Search,
   SkipBack,
   SkipForward,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
@@ -734,10 +735,39 @@ export default function CircularTimeMap() {
     y: cardBorderY,
   };
   const hasOpenFan = expandedSlot !== null;
-  const hasOpenDropdown = isSearchOpen || isRankingOpen;
+  const hasOpenDropdown = isSearchOpen || isRankingOpen || isListOpen;
 
   function getSongsForSeason(targetSeason: ViewSeason): CircularSong[] {
     return allSongs.filter((song) => song.season === targetSeason);
+  }
+
+  function closePrimaryOverlays() {
+    setIsSearchOpen(false);
+    setIsRankingOpen(false);
+    setIsListOpen(false);
+    setIsCommentExpanded(false);
+  }
+
+  function openSearchPanel() {
+    setIsSearchOpen(true);
+    setIsRankingOpen(false);
+    setIsListOpen(false);
+    setIsCommentExpanded(false);
+    setIsCardOpen(false);
+  }
+
+  function toggleListPanel() {
+    const shouldOpenList = !isListOpen;
+    setIsListOpen(shouldOpenList);
+    setIsSearchOpen(false);
+    setIsRankingOpen(false);
+    setIsCommentExpanded(false);
+  }
+
+  function clearPlaylistSearch() {
+    setPlaylistSearch("");
+    setIsSearchOpen(false);
+    setIsRankingOpen(false);
   }
 
   function getTimeMapSongsForSeason(targetSeason: ViewSeason) {
@@ -817,9 +847,7 @@ export default function CircularTimeMap() {
 
     setSelectedSong(song);
     setIsCardOpen(false);
-    setIsSearchOpen(false);
-    setIsRankingOpen(false);
-    setIsListOpen(false);
+    closePrimaryOverlays();
     queueRef.current =
       song.season === season
         ? sortedPlaylistSongs
@@ -829,16 +857,13 @@ export default function CircularTimeMap() {
 
   function handleBackgroundClick() {
     if (isCardOpen) {
+      closePrimaryOverlays();
       setIsCardOpen(false);
-      stopYouTubePlayback();
       return;
     }
 
     setExpandedSlot(null);
-    setIsSearchOpen(false);
-    setIsRankingOpen(false);
-    setIsListOpen(false);
-    stopYouTubePlayback();
+    closePrimaryOverlays();
   }
 
   function handleYouTubeReady(event: YouTubeEvent) {
@@ -960,9 +985,7 @@ export default function CircularTimeMap() {
     setSelectedSong(null);
     setExpandedSlot(null);
     setIsCardOpen(false);
-    setIsSearchOpen(false);
-    setIsRankingOpen(false);
-    setIsListOpen(false);
+    closePrimaryOverlays();
     // The playing iframe and its queue intentionally remain active until a new song is played.
   }
 
@@ -1195,9 +1218,7 @@ export default function CircularTimeMap() {
 
         setIsCardOpen(false);
         setExpandedSlot(null);
-        setIsSearchOpen(false);
-        setIsRankingOpen(false);
-        stopYouTubePlayback();
+        closePrimaryOverlays();
       }
 
       if (event.code !== "Space") return;
@@ -1614,7 +1635,7 @@ export default function CircularTimeMap() {
           </button>
         </div>
         {(floatingSong || showTopPlayHint) && (
-          <div className="pointer-events-none fixed left-1/2 top-[128px] z-[390] w-[min(560px,calc(100vw-48px))] -translate-x-1/2 text-center sm:top-[82px]">
+          <div className="pointer-events-none fixed left-1/2 top-[128px] z-[430] w-[min(560px,calc(100vw-48px))] -translate-x-1/2 text-center sm:top-[82px]">
             {floatingSong ? (
               <>
                 <p className="truncate text-sm font-semibold leading-6 text-[var(--theme-text)] transition-colors duration-[650ms]">
@@ -1634,6 +1655,7 @@ export default function CircularTimeMap() {
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
+                            closePrimaryOverlays();
                             setIsCommentExpanded(true);
                           }}
                           className="pointer-events-auto shrink-0 text-[11px] font-semibold text-[var(--theme-faint)] underline underline-offset-4 transition hover:text-[var(--theme-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--theme-accent-rgb),0.18)]"
@@ -1649,6 +1671,7 @@ export default function CircularTimeMap() {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -6, scale: 0.98 }}
                           transition={{ duration: 0.18, ease: SMOOTH_EASE }}
+                          onClick={(event) => event.stopPropagation()}
                           className="pointer-events-auto absolute left-1/2 top-[calc(100%+10px)] z-[430] w-[min(640px,calc(100vw-36px))] -translate-x-1/2 rounded-[16px] border border-[var(--theme-border)] bg-[rgba(248,250,252,0.92)] px-4 py-3 text-left text-sm leading-6 text-[var(--theme-muted)] shadow-[0_18px_48px_rgba(24,34,44,0.12)] backdrop-blur-2xl"
                         >
                           <p className="whitespace-pre-wrap break-words">
@@ -1696,7 +1719,7 @@ export default function CircularTimeMap() {
                     animate={{ opacity: 1, y: 0, maxHeight: 48 }}
                     exit={{ opacity: 0, y: -8, maxHeight: 0 }}
                     transition={{ duration: 0.3, ease: SMOOTH_EASE }}
-                    className="order-2 flex h-12 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] px-5 text-[var(--theme-muted)] shadow-[0_14px_34px_rgba(0,0,0,0.08)] backdrop-blur-2xl transition duration-[650ms] focus-within:border-[rgba(var(--theme-accent-rgb),0.34)] focus-within:bg-[var(--theme-glass-strong)] sm:order-1 sm:flex-1"
+                    className="relative order-2 flex h-12 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] py-0 pl-5 pr-14 text-[var(--theme-muted)] shadow-[0_14px_34px_rgba(0,0,0,0.08)] backdrop-blur-2xl transition duration-[650ms] focus-within:border-[rgba(var(--theme-accent-rgb),0.34)] focus-within:bg-[var(--theme-glass-strong)] sm:order-1 sm:flex-1"
                     style={{ willChange: "transform, opacity, max-height" }}
                   >
                     <Search size={16} className="shrink-0 opacity-65" />
@@ -1704,22 +1727,34 @@ export default function CircularTimeMap() {
                       value={playlistSearch}
                       onChange={(event) => {
                         setPlaylistSearch(event.target.value);
-                        setIsSearchOpen(true);
-                        setIsRankingOpen(false);
+                        openSearchPanel();
                       }}
                       onFocus={() => {
-                        setIsSearchOpen(true);
-                        setIsRankingOpen(false);
-                        setIsCardOpen(false);
+                        openSearchPanel();
                       }}
                       onClick={() => {
-                        setIsSearchOpen(true);
-                        setIsRankingOpen(false);
-                        setIsCardOpen(false);
+                        openSearchPanel();
                       }}
                       placeholder="전체 시즌에서 검색"
                       className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-faint)]"
                     />
+                    {playlistSearch && (
+                      <button
+                        type="button"
+                        onPointerDown={(event) => {
+                          event.stopPropagation();
+                        }}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          clearPlaylistSearch();
+                        }}
+                        className="absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-[var(--theme-muted)] transition hover:bg-[rgba(var(--theme-accent-rgb),0.08)] hover:text-[var(--theme-text)] active:bg-[rgba(var(--theme-accent-rgb),0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--theme-accent-rgb),0.2)]"
+                        aria-label="검색어 지우기"
+                      >
+                        <X size={16} strokeWidth={2.2} />
+                      </button>
+                    )}
                   </motion.label>
                 )}
               </AnimatePresence>
@@ -1727,9 +1762,7 @@ export default function CircularTimeMap() {
                 <button
                   type="button"
                   onClick={() => {
-                    setIsListOpen((current) => !current);
-                    setIsSearchOpen(false);
-                    setIsRankingOpen(false);
+                    toggleListPanel();
                   }}
                   className="order-1 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] shadow-[0_10px_24px_rgba(28,40,52,0.08)] backdrop-blur-xl transition duration-[650ms] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.24)]"
                   aria-label="곡 목록"
@@ -1740,8 +1773,7 @@ export default function CircularTimeMap() {
                 <button
                   type="button"
                   onClick={() => {
-                    setIsSearchOpen(false);
-                    setIsRankingOpen(false);
+                    closePrimaryOverlays();
                     setIsFrissonLetterOpen(true);
                   }}
                   className="order-3 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] shadow-[0_10px_24px_rgba(28,40,52,0.08)] backdrop-blur-xl transition duration-[650ms] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.24)]"
@@ -1755,8 +1787,7 @@ export default function CircularTimeMap() {
                     href={submitHref}
                     onClick={() => {
                       sessionStorage.removeItem("frissonSelectedTime");
-                      setIsSearchOpen(false);
-                      setIsRankingOpen(false);
+                      closePrimaryOverlays();
                     }}
                     className="order-2 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] shadow-[0_10px_24px_rgba(28,40,52,0.08)] backdrop-blur-xl transition duration-[650ms] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.24)]"
                     aria-label={currentUserSeasonSong ? "내 곡 수정" : "곡 추가"}
@@ -2370,8 +2401,7 @@ export default function CircularTimeMap() {
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      setIsSearchOpen(false);
-                      setIsRankingOpen(false);
+                      closePrimaryOverlays();
                       setExpandedSlot(null);
                       selectSong(song);
                     }}
