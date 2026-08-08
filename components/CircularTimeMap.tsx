@@ -2065,11 +2065,20 @@ export default function CircularTimeMap() {
               style={{ boxShadow: "var(--lp-shadow)" }}
             />
             <div
-              className="absolute inset-[4.4%] rounded-full bg-[conic-gradient(from_305deg_at_50%_50%,transparent_0deg,transparent_24deg,rgba(255,255,255,0.055)_34deg,rgba(var(--theme-accent-rgb),0.13)_48deg,rgba(255,255,255,0.04)_67deg,transparent_82deg,transparent_360deg)] mix-blend-screen transition-colors duration-[650ms]"
-              style={{ opacity: "var(--lp-highlight-opacity)" }}
+              className="frisson-record-counter-spin absolute inset-[4.4%] rounded-full bg-[conic-gradient(from_305deg_at_50%_50%,transparent_0deg,transparent_24deg,rgba(255,255,255,0.055)_34deg,rgba(var(--theme-accent-rgb),0.13)_48deg,rgba(255,255,255,0.04)_67deg,transparent_82deg,transparent_360deg)] mix-blend-screen transition-colors duration-[650ms]"
+              style={{
+                animationPlayState: isDisplayedRecordPlaying ? "running" : "paused",
+                opacity: "var(--lp-highlight-opacity)",
+              }}
             />
-            <div className="pointer-events-none absolute inset-[4.6%] rounded-full bg-[conic-gradient(from_18deg_at_50%_50%,transparent_0deg,transparent_47deg,rgba(255,255,255,0.18)_56deg,rgba(255,255,255,0.02)_68deg,transparent_84deg,transparent_180deg,rgba(255,255,255,0.12)_211deg,rgba(255,255,255,0.018)_224deg,transparent_244deg,transparent_360deg)] mix-blend-screen opacity-30" />
-            <div className="pointer-events-none absolute inset-[5%] rounded-full bg-[conic-gradient(from_148deg_at_50%_50%,transparent_0deg,transparent_59deg,rgba(var(--theme-accent-rgb),0.2)_72deg,rgba(255,255,255,0.045)_84deg,transparent_102deg,transparent_360deg)] blur-[1px] opacity-35" />
+            <div
+              className="frisson-record-counter-spin pointer-events-none absolute inset-[4.6%] rounded-full bg-[conic-gradient(from_18deg_at_50%_50%,transparent_0deg,transparent_47deg,rgba(255,255,255,0.18)_56deg,rgba(255,255,255,0.02)_68deg,transparent_84deg,transparent_180deg,rgba(255,255,255,0.12)_211deg,rgba(255,255,255,0.018)_224deg,transparent_244deg,transparent_360deg)] mix-blend-screen opacity-30"
+              style={{ animationPlayState: isDisplayedRecordPlaying ? "running" : "paused" }}
+            />
+            <div
+              className="frisson-record-counter-spin pointer-events-none absolute inset-[5%] rounded-full bg-[conic-gradient(from_148deg_at_50%_50%,transparent_0deg,transparent_59deg,rgba(var(--theme-accent-rgb),0.2)_72deg,rgba(255,255,255,0.045)_84deg,transparent_102deg,transparent_360deg)] blur-[1px] opacity-35"
+              style={{ animationPlayState: isDisplayedRecordPlaying ? "running" : "paused" }}
+            />
             <div className="absolute inset-[4%] rounded-full border border-[rgba(var(--theme-accent-rgb),0.16)] bg-[repeating-radial-gradient(circle_at_center,transparent_0px,transparent_7px,rgba(255,255,255,0.055)_8px,transparent_9px)] opacity-80 transition-colors duration-[650ms]" />
             <div className="absolute inset-[5.5%] rounded-full border border-black/60 shadow-[inset_0_0_0_2px_rgba(255,255,255,0.025),inset_0_0_22px_rgba(255,255,255,0.025)]" />
             <div className="absolute inset-[18%] rounded-full border border-white/[0.045]" />
