@@ -12,8 +12,6 @@ import {
   Play,
   Plus,
   Search,
-  SkipBack,
-  SkipForward,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -28,7 +26,7 @@ import {
 } from "@/lib/nowPlaying";
 import { supabase } from "@/lib/supabase";
 
-type ViewSeason = 1 | 2 | 3 | typeof CURRENT_SEASON;
+type ViewSeason = 1 | 2 | 3 | 4 | typeof CURRENT_SEASON;
 type CircularSong = {
   id: string;
   season: ViewSeason;
@@ -89,6 +87,7 @@ const MINOR_TICK_INNER_RADIUS = 316;
 const MINOR_TICK_OUTER_RADIUS = 334;
 const LABEL_RADIUS = 360;
 const PING_RADIUS = 300;
+const TOP_COPY_CLEARANCE_HOURS = 3;
 const PROGRESS_RADIUS = 286;
 const PROGRESS_CIRCUMFERENCE = 2 * Math.PI * PROGRESS_RADIUS;
 const FLOATING_CARD_WIDTH = 292;
@@ -353,7 +352,11 @@ function getPosition(hour: number, radius = RADIUS) {
 }
 
 function getTrackPosition(index: number, total: number, radius = PING_RADIUS) {
-  return getPosition((index / Math.max(total, 1)) * 24, radius);
+  const availableHours = 24 - TOP_COPY_CLEARANCE_HOURS;
+  const startHour = TOP_COPY_CLEARANCE_HOURS / 2;
+  const step = total <= 1 ? 0 : availableHours / (total - 1);
+
+  return getPosition(startHour + index * step, radius);
 }
 
 function getExpansion(songIndex: number) {
@@ -507,7 +510,11 @@ function parseSongVoters(value: SongRow["voters"]) {
 }
 
 function normalizeSeason(value: number | null | undefined): ViewSeason {
-  return value === 1 || value === 2 || value === 3 || value === CURRENT_SEASON
+  return value === 1 ||
+    value === 2 ||
+    value === 3 ||
+    value === 4 ||
+    value === CURRENT_SEASON
     ? value
     : CURRENT_SEASON;
 }
@@ -633,7 +640,7 @@ export default function CircularTimeMap() {
     () => new Set()
   );
   const seasonOptions = useMemo(
-    () => [1, 2, 3, CURRENT_SEASON] as ViewSeason[],
+    () => [1, 2, 3, 4, CURRENT_SEASON] as ViewSeason[],
     []
   );
   useEffect(() => {
@@ -1355,7 +1362,11 @@ export default function CircularTimeMap() {
         songs: [song],
         index,
         total,
-        timeValue: (index / Math.max(total, 1)) * 24,
+        timeValue:
+          TOP_COPY_CLEARANCE_HOURS / 2 +
+          (total <= 1
+            ? 0
+            : (index * (24 - TOP_COPY_CLEARANCE_HOURS)) / (total - 1)),
         radius: PING_RADIUS,
       }));
   }, [sortedPlaylistSongs]);
@@ -1494,67 +1505,58 @@ export default function CircularTimeMap() {
     >
       <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_48%,var(--theme-radial-a),transparent_38%),radial-gradient(circle_at_18%_12%,var(--theme-radial-b),transparent_24%),radial-gradient(circle_at_82%_88%,var(--theme-radial-c),transparent_31%),linear-gradient(135deg,var(--theme-accent-wash),transparent_36%)] transition-colors duration-[850ms] ease-out" />
       <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(var(--theme-grid)_1px,transparent_1px),linear-gradient(90deg,var(--theme-grid)_1px,transparent_1px)] bg-[size:76px_76px] opacity-35 transition-colors duration-[850ms] ease-out" />
-      {floatingThumbnailUrl && (
-        <div
-          key={`page-${floatingSong?.id}`}
-          className="pointer-events-none fixed inset-[-55%] z-[1] bg-cover bg-center opacity-[0.3] transition-opacity duration-300"
-          style={{
-            backgroundImage: `url(${floatingThumbnailUrl})`,
-            backgroundRepeat: "no-repeat",
-            filter: "blur(40px) saturate(1.08)",
-            maskImage:
-              "radial-gradient(circle at 50% 52%, black 0%, black 42%, transparent 78%)",
-            transform: "scale(1.1)",
-            WebkitMaskImage:
-              "radial-gradient(circle at 50% 52%, black 0%, black 42%, transparent 78%)",
-          }}
-          aria-hidden="true"
-        />
-      )}
+      <AnimatePresence>
+        {floatingThumbnailUrl && (
+          <motion.div
+            key={`page-${floatingSong?.id}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.3 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.55, ease: SMOOTH_EASE }}
+            className="pointer-events-none fixed inset-[-55%] z-[1] bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${floatingThumbnailUrl})`,
+              backgroundRepeat: "no-repeat",
+              filter: "blur(40px) saturate(1.08)",
+              maskImage:
+                "radial-gradient(circle at 50% 52%, black 0%, black 42%, transparent 78%)",
+              transform: "scale(1.1)",
+              WebkitMaskImage:
+                "radial-gradient(circle at 50% 52%, black 0%, black 42%, transparent 78%)",
+            }}
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
 
       <div className="relative z-10 min-h-[calc(100vh-48px)]">
-        <div
-          className="fixed left-5 top-5 z-[420] sm:left-8 sm:top-6"
+        <nav
+          className="fixed left-5 top-5 z-[420] flex items-center gap-2 sm:left-8 sm:top-6 sm:gap-3"
+          aria-label="프리송 시즌 선택"
           onClick={(event) => event.stopPropagation()}
         >
-          <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--theme-faint)] transition-colors duration-[650ms]">
-            Frisson Season {season}
-          </p>
-          <div className="relative mt-3 grid h-[148px] w-10 grid-rows-4 items-center justify-items-center overflow-hidden rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] p-1 text-xs font-bold tabular-nums shadow-[0_10px_24px_rgba(28,40,52,0.08)] backdrop-blur-2xl transition-colors duration-[650ms]">
-            <span
-              className="absolute left-1 top-1 w-8 rounded-full bg-[var(--theme-glass-strong)] shadow-[0_6px_14px_rgba(28,40,52,0.08)] transition-transform duration-[250ms] ease-out"
-              style={{
-                height: "calc((100% - 8px) / 4)",
-                transform: `translateY(calc(${Math.max(
-                  0,
-                  seasonOptions.indexOf(season)
-                )} * 100%))`,
-              }}
-              aria-hidden="true"
-            />
-            {seasonOptions.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => selectSeason(item)}
-                aria-label={`시즌 ${item} 선택`}
-                aria-pressed={season === item}
-                className={`relative z-10 flex h-full w-8 items-center justify-center bg-transparent text-center text-xs font-bold tabular-nums tracking-normal transition duration-200 hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.16)] ${
-                  season === item
-                    ? "text-[var(--theme-text)]"
-                    : "text-[var(--theme-faint)]"
-                }`}
-              >
-                {String(item).padStart(2, "0")}
-              </button>
-            ))}
-          </div>
-        </div>
+          {seasonOptions.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => selectSeason(item)}
+              aria-label={`시즌 ${item} 선택`}
+              aria-pressed={season === item}
+              className={`flex h-8 w-7 items-center justify-center rounded-full text-center font-bold tabular-nums transition-[transform,color,background-color,box-shadow] duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.2)] sm:h-9 sm:w-8 ${
+                season === item
+                  ? "scale-[1.32] bg-[var(--theme-glass-strong)] text-base text-[var(--theme-text)] shadow-[0_8px_18px_rgba(28,40,52,0.12)]"
+                  : "text-xs text-[var(--theme-faint)] hover:scale-110 hover:text-[var(--theme-text)]"
+              }`}
+            >
+              {String(item).padStart(2, "0")}
+            </button>
+          ))}
+        </nav>
         <div
-          className="fixed left-1/2 top-[48px] z-[420] -translate-x-1/2 lg:hidden"
+          className="fixed left-1/2 top-[64px] z-[420] -translate-x-1/2 lg:hidden"
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="inline-flex rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] p-1 shadow-[0_8px_18px_rgba(28,40,52,0.07)] backdrop-blur-xl">
+          <div className="inline-flex h-10 rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] p-1 shadow-[0_8px_18px_rgba(28,40,52,0.07)] backdrop-blur-xl">
             {([
               ["popular", "인기순"],
               ["latest", "최신순"],
@@ -1564,7 +1566,7 @@ export default function CircularTimeMap() {
                 type="button"
                 onClick={() => setListSort(value)}
                 aria-pressed={listSort === value}
-                className={`h-9 min-w-14 rounded-full px-3 text-xs font-semibold transition ${
+                className={`h-8 min-w-14 rounded-full px-3 text-[12px] font-semibold leading-none transition ${
                   listSort === value
                     ? "bg-[var(--theme-glass-strong)] text-[var(--theme-text)]"
                     : "text-[var(--theme-faint)] hover:text-[var(--theme-text)]"
@@ -1587,20 +1589,19 @@ export default function CircularTimeMap() {
             toggleLikedOnly();
           }}
           aria-pressed={isLikedOnly}
-          className={`fixed right-5 top-[53px] z-[420] flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-xs font-semibold shadow-[0_8px_18px_rgba(28,40,52,0.07)] backdrop-blur-xl transition sm:right-8 lg:hidden ${
+          className={`fixed right-5 top-[64px] z-[420] flex h-10 items-center whitespace-nowrap rounded-full border px-3.5 text-[12px] font-semibold leading-none shadow-[0_8px_18px_rgba(28,40,52,0.07)] backdrop-blur-xl transition sm:right-8 lg:hidden ${
             isLikedOnly
               ? "border-[rgba(var(--theme-accent-rgb),0.36)] bg-[rgba(var(--theme-accent-rgb),0.14)] text-[var(--theme-text)]"
               : "border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] hover:text-[var(--theme-text)]"
           }`}
         >
-          <Heart size={14} fill={isLikedOnly ? "currentColor" : "none"} />
           내 Like만
         </button>
         <div
           className="fixed right-8 top-[53px] z-[420] hidden items-center gap-3 lg:flex"
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="inline-flex rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] p-1 shadow-[0_8px_18px_rgba(28,40,52,0.07)] backdrop-blur-xl">
+          <div className="inline-flex h-10 rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] p-1 shadow-[0_8px_18px_rgba(28,40,52,0.07)] backdrop-blur-xl">
             {([
               ["popular", "인기순"],
               ["latest", "최신순"],
@@ -1610,7 +1611,7 @@ export default function CircularTimeMap() {
                 type="button"
                 onClick={() => setListSort(value)}
                 aria-pressed={listSort === value}
-                className={`h-9 min-w-14 rounded-full px-3 text-xs font-semibold transition ${
+                className={`h-8 min-w-14 rounded-full px-3 text-[12px] font-semibold leading-none transition ${
                   listSort === value
                     ? "bg-[var(--theme-glass-strong)] text-[var(--theme-text)]"
                     : "text-[var(--theme-faint)] hover:text-[var(--theme-text)]"
@@ -1624,20 +1625,18 @@ export default function CircularTimeMap() {
             type="button"
             onClick={toggleLikedOnly}
             aria-pressed={isLikedOnly}
-            className={`flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-xs font-semibold shadow-[0_8px_18px_rgba(28,40,52,0.07)] backdrop-blur-xl transition ${
+            className={`flex h-10 items-center whitespace-nowrap rounded-full border px-3.5 text-[12px] font-semibold leading-none shadow-[0_8px_18px_rgba(28,40,52,0.07)] backdrop-blur-xl transition ${
               isLikedOnly
                 ? "border-[rgba(var(--theme-accent-rgb),0.36)] bg-[rgba(var(--theme-accent-rgb),0.14)] text-[var(--theme-text)]"
                 : "border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] hover:text-[var(--theme-text)]"
             }`}
           >
-            <Heart size={14} fill={isLikedOnly ? "currentColor" : "none"} />
             내 Like만
           </button>
         </div>
-        {(floatingSong || showTopPlayHint) && (
+        {floatingSong && (
           <div className="pointer-events-none fixed left-1/2 top-[128px] z-[430] w-[min(560px,calc(100vw-48px))] -translate-x-1/2 text-center sm:top-[82px]">
-            {floatingSong ? (
-              <>
+            <>
                 <p className="truncate text-sm font-semibold leading-6 text-[var(--theme-text)] transition-colors duration-[650ms]">
                   {floatingSong.title}
                 </p>
@@ -1692,12 +1691,7 @@ export default function CircularTimeMap() {
                     </AnimatePresence>
                   </>
                 )}
-              </>
-            ) : (
-              <p className="mx-auto max-w-[320px] text-sm font-medium leading-6 text-[var(--theme-faint)] transition-colors duration-[650ms] sm:max-w-none">
-                닉네임을 누르고 LP의 라벨을 눌러 곡을 재생하세요.
-              </p>
-            )}
+            </>
           </div>
         )}
         <div className="absolute left-0 right-0 top-0 flex items-start justify-between gap-8">
@@ -1710,6 +1704,11 @@ export default function CircularTimeMap() {
               className="relative flex w-full flex-col items-center gap-2"
               onClick={(event) => event.stopPropagation()}
             >
+              {showTopPlayHint && (
+                <p className="mx-auto mb-2 max-w-[360px] rounded-2xl bg-white/15 px-4 py-2 text-center text-sm font-medium leading-6 text-[var(--theme-muted)] shadow-[0_12px_28px_rgba(20,28,36,0.045)] backdrop-blur-2xl transition-colors duration-[650ms] sm:max-w-none">
+                  닉네임을 누르고 LP의 라벨을 눌러 곡을 재생하세요.
+                </p>
+              )}
               <div className="flex w-full flex-col items-center gap-2 sm:flex-row sm:justify-center">
               <AnimatePresence initial={false}>
                 {!isRankingOpen && (
@@ -1719,7 +1718,7 @@ export default function CircularTimeMap() {
                     animate={{ opacity: 1, y: 0, maxHeight: 48 }}
                     exit={{ opacity: 0, y: -8, maxHeight: 0 }}
                     transition={{ duration: 0.3, ease: SMOOTH_EASE }}
-                    className="relative order-2 flex h-12 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] py-0 pl-5 pr-14 text-[var(--theme-muted)] shadow-[0_14px_34px_rgba(0,0,0,0.08)] backdrop-blur-2xl transition duration-[650ms] focus-within:border-[rgba(var(--theme-accent-rgb),0.34)] focus-within:bg-[var(--theme-glass-strong)] sm:order-1 sm:flex-1"
+                    className="relative order-2 flex h-13 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] py-0 pl-5 pr-14 text-[var(--theme-muted)] shadow-[0_14px_34px_rgba(0,0,0,0.08)] backdrop-blur-2xl transition duration-[650ms] focus-within:border-[rgba(var(--theme-accent-rgb),0.34)] focus-within:bg-[var(--theme-glass-strong)] sm:order-1 sm:flex-1"
                     style={{ willChange: "transform, opacity, max-height" }}
                   >
                     <Search size={16} className="shrink-0 opacity-65" />
@@ -1764,11 +1763,11 @@ export default function CircularTimeMap() {
                   onClick={() => {
                     toggleListPanel();
                   }}
-                  className="order-1 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] shadow-[0_10px_24px_rgba(28,40,52,0.08)] backdrop-blur-xl transition duration-[650ms] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.24)]"
+                  className="order-1 flex h-13 w-13 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] shadow-[0_10px_24px_rgba(28,40,52,0.08)] backdrop-blur-xl transition duration-[650ms] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.24)]"
                   aria-label="곡 목록"
                   title="곡 목록"
                 >
-                  <ListMusic size={16} />
+                  <ListMusic size={19} />
                 </button>
                 <button
                   type="button"
@@ -1776,11 +1775,11 @@ export default function CircularTimeMap() {
                     closePrimaryOverlays();
                     setIsFrissonLetterOpen(true);
                   }}
-                  className="order-3 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] shadow-[0_10px_24px_rgba(28,40,52,0.08)] backdrop-blur-xl transition duration-[650ms] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.24)]"
+                  className="order-3 flex h-13 w-13 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] shadow-[0_10px_24px_rgba(28,40,52,0.08)] backdrop-blur-xl transition duration-[650ms] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.24)]"
                   aria-label="프리송의 편지"
                   title="프리송의 편지"
                 >
-                  <CircleHelp size={16} />
+                  <CircleHelp size={19} />
                 </button>
                 {shouldShowSubmitControl && (
                   <Link
@@ -1789,14 +1788,14 @@ export default function CircularTimeMap() {
                       sessionStorage.removeItem("frissonSelectedTime");
                       closePrimaryOverlays();
                     }}
-                    className="order-2 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] shadow-[0_10px_24px_rgba(28,40,52,0.08)] backdrop-blur-xl transition duration-[650ms] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.24)]"
+                    className="order-2 flex h-13 w-13 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-glass)] text-[var(--theme-faint)] shadow-[0_10px_24px_rgba(28,40,52,0.08)] backdrop-blur-xl transition duration-[650ms] hover:text-[var(--theme-text)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.24)]"
                     aria-label={currentUserSeasonSong ? "내 곡 수정" : "곡 추가"}
                     title={currentUserSeasonSong ? "내 곡 수정" : "곡 추가"}
                   >
                     {currentUserSeasonSong ? (
-                      <Pencil size={15} />
+                      <Pencil size={18} />
                     ) : (
-                      <Plus size={16} />
+                      <Plus size={19} />
                     )}
                   </Link>
                 )}
@@ -2008,7 +2007,7 @@ export default function CircularTimeMap() {
               >
                 전체 곡 보기
               </button>
-            ) : (
+            ) : shouldShowSubmitControl ? (
               <Link
                 href="/submit"
                 onClick={() => {
@@ -2019,35 +2018,40 @@ export default function CircularTimeMap() {
                 <Plus size={13} />
                 곡 추가
               </Link>
-            )}
+            ) : null}
           </div>
         )}
 
         <div
-          className="fixed left-1/2 top-1/2 z-[300] aspect-square w-[var(--record-size)] -translate-x-1/2 -translate-y-1/2"
+          className="fixed left-1/2 top-[calc(50%-28px)] z-[300] aspect-square w-[var(--record-size)] -translate-x-1/2 -translate-y-1/2 sm:top-[calc(50%-20px)]"
           onClick={(event) => {
             event.stopPropagation();
             handleBackgroundClick();
           }}
         >
-          {floatingThumbnailUrl && (
-            <div
-              key={floatingSong?.id}
-              className="pointer-events-none absolute inset-[-52%] z-[5] rounded-full bg-cover bg-center transition-opacity duration-300"
-              style={{
-                backgroundImage: `url(${floatingThumbnailUrl})`,
-                backgroundRepeat: "no-repeat",
-                filter: "blur(38px) saturate(1.08)",
-                maskImage:
-                  "radial-gradient(circle at 50% 50%, black 0%, black 48%, transparent 76%)",
-                opacity: hasOpenFan ? 0.12 : 0.3,
-                transform: "scale(1.2)",
-                WebkitMaskImage:
-                  "radial-gradient(circle at 50% 50%, black 0%, black 48%, transparent 76%)",
-              }}
-              aria-hidden="true"
-            />
-          )}
+          <AnimatePresence>
+            {floatingThumbnailUrl && (
+              <motion.div
+                key={`record-${floatingSong?.id}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: hasOpenFan ? 0.12 : 0.3 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.55, ease: SMOOTH_EASE }}
+                className="pointer-events-none absolute inset-[-52%] z-[5] rounded-full bg-cover bg-center"
+                style={{
+                  backgroundImage: `url(${floatingThumbnailUrl})`,
+                  backgroundRepeat: "no-repeat",
+                  filter: "blur(38px) saturate(1.08)",
+                  maskImage:
+                    "radial-gradient(circle at 50% 50%, black 0%, black 48%, transparent 76%)",
+                  transform: "scale(1.2)",
+                  WebkitMaskImage:
+                    "radial-gradient(circle at 50% 50%, black 0%, black 48%, transparent 76%)",
+                }}
+                aria-hidden="true"
+              />
+            )}
+          </AnimatePresence>
           <div
             className="frisson-record-spin absolute inset-0 z-10"
             style={{
@@ -2064,10 +2068,13 @@ export default function CircularTimeMap() {
               className="absolute inset-[4.4%] rounded-full bg-[conic-gradient(from_305deg_at_50%_50%,transparent_0deg,transparent_24deg,rgba(255,255,255,0.055)_34deg,rgba(var(--theme-accent-rgb),0.13)_48deg,rgba(255,255,255,0.04)_67deg,transparent_82deg,transparent_360deg)] mix-blend-screen transition-colors duration-[650ms]"
               style={{ opacity: "var(--lp-highlight-opacity)" }}
             />
+            <div className="pointer-events-none absolute inset-[4.6%] rounded-full bg-[conic-gradient(from_18deg_at_50%_50%,transparent_0deg,transparent_47deg,rgba(255,255,255,0.18)_56deg,rgba(255,255,255,0.02)_68deg,transparent_84deg,transparent_180deg,rgba(255,255,255,0.12)_211deg,rgba(255,255,255,0.018)_224deg,transparent_244deg,transparent_360deg)] mix-blend-screen opacity-30" />
+            <div className="pointer-events-none absolute inset-[5%] rounded-full bg-[conic-gradient(from_148deg_at_50%_50%,transparent_0deg,transparent_59deg,rgba(var(--theme-accent-rgb),0.2)_72deg,rgba(255,255,255,0.045)_84deg,transparent_102deg,transparent_360deg)] blur-[1px] opacity-35" />
             <div className="absolute inset-[4%] rounded-full border border-[rgba(var(--theme-accent-rgb),0.16)] bg-[repeating-radial-gradient(circle_at_center,transparent_0px,transparent_7px,rgba(255,255,255,0.055)_8px,transparent_9px)] opacity-80 transition-colors duration-[650ms]" />
             <div className="absolute inset-[5.5%] rounded-full border border-black/60 shadow-[inset_0_0_0_2px_rgba(255,255,255,0.025),inset_0_0_22px_rgba(255,255,255,0.025)]" />
             <div className="absolute inset-[18%] rounded-full border border-white/[0.045]" />
             <div className="absolute inset-[30%] rounded-full border border-white/[0.035]" />
+            <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-[31%] w-[31%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.08] bg-[radial-gradient(circle_at_36%_28%,#2e3032_0%,#121315_34%,#070708_68%,#010101_100%)] shadow-[inset_0_0_18px_rgba(255,255,255,0.03),0_0_20px_rgba(0,0,0,0.36)]" />
             <button
               type="button"
               onClick={(event) => {
@@ -2075,7 +2082,7 @@ export default function CircularTimeMap() {
                 handleCenterLabelPlayPause();
               }}
               disabled={!floatingSong}
-              className="absolute left-1/2 top-1/2 h-[26.4%] w-[26.4%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border border-transparent bg-transparent shadow-none transition duration-200 hover:scale-[1.015] hover:opacity-90 active:scale-[0.99] disabled:cursor-default disabled:hover:scale-100 disabled:hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-[rgba(70,70,70,0.24)]"
+              className="absolute left-1/2 top-1/2 z-30 h-[26%] w-[26%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border border-transparent bg-transparent shadow-none transition duration-200 hover:scale-[1.015] hover:opacity-90 active:scale-[0.99] disabled:cursor-default disabled:hover:scale-100 disabled:hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-[rgba(70,70,70,0.24)]"
               aria-label={
                 selectedSong && playingSong?.id !== selectedSong.id
                   ? "선택 곡 재생"
@@ -2105,11 +2112,12 @@ export default function CircularTimeMap() {
               event.stopPropagation();
               movePlaylist(-1);
             }}
-            className="absolute top-1/2 z-[420] flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-transparent text-[var(--theme-faint)] transition hover:opacity-70 active:opacity-55 focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.18)]"
-            style={{ left: "clamp(-104px, -15%, -40px)" }}
+            className="absolute left-[-29px] top-1/2 z-[420] flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-transparent text-[var(--theme-faint)] transition hover:opacity-70 active:opacity-55 focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.18)] sm:left-[clamp(-144px,-22%,-76px)]"
             aria-label="이전 곡"
           >
-            <SkipBack size={22} />
+            <svg viewBox="0 0 32 24" className="h-8 w-8" aria-hidden="true">
+              <path d="M15 3 4 12l11 9V3Zm13 0-11 9 11 9V3Z" fill="currentColor" />
+            </svg>
           </button>
           <button
             type="button"
@@ -2117,11 +2125,12 @@ export default function CircularTimeMap() {
               event.stopPropagation();
               movePlaylist(1);
             }}
-            className="absolute top-1/2 z-[420] flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-transparent text-[var(--theme-faint)] transition hover:opacity-70 active:opacity-55 focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.18)]"
-            style={{ right: "clamp(-104px, -15%, -40px)" }}
+            className="absolute right-[-29px] top-1/2 z-[420] flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-transparent text-[var(--theme-faint)] transition hover:opacity-70 active:opacity-55 focus:outline-none focus:ring-2 focus:ring-[rgba(var(--theme-accent-rgb),0.18)] sm:right-[clamp(-144px,-22%,-76px)]"
             aria-label="다음 곡"
           >
-            <SkipForward size={22} />
+            <svg viewBox="0 0 32 24" className="h-8 w-8" aria-hidden="true">
+              <path d="m17 3 11 9-11 9V3ZM4 3l11 9L4 21V3Z" fill="currentColor" />
+            </svg>
           </button>
 
           {isMounted && selectedSong && isCardOpen && (
@@ -2251,7 +2260,9 @@ export default function CircularTimeMap() {
             return (
               <span
                 key={`label-${hour}`}
-                className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2 text-[17px] font-bold tabular-nums tracking-[0.04em] text-[var(--theme-faint)] transition-colors duration-[650ms]"
+                className={`pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2 text-[17px] font-bold tabular-nums tracking-[0.04em] text-[var(--theme-faint)] transition-colors duration-[650ms] ${
+                  hour === 6 || hour === 18 ? "hidden sm:block" : ""
+                }`}
                 style={{
                   left: `${(label.x / SIZE) * 100}%`,
                   top: `${(label.y / SIZE) * 100}%`,

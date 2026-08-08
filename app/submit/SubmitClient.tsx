@@ -181,7 +181,7 @@ export default function SubmitClient() {
 
     try {
       if (isEditMode && editSongId) {
-        // Edit mode: Update the current user's Season 4 song only.
+        // Edit mode: Update the current user's current-season song only.
         const thumbnailUrl = getYouTubeThumbnail(youtubeUrl);
         const title = await getYouTubeTitle(youtubeUrl);
 
@@ -333,7 +333,7 @@ export default function SubmitClient() {
             </div>
 
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--frisson-faint)]">
-              Frisson Season 4
+              Frisson Season {CURRENT_SEASON}
             </p>
             <h1 className="m-0 text-3xl font-semibold tracking-tight text-[var(--frisson-text)] md:text-4xl">
               이번 시즌 제출이 마감되었습니다
@@ -390,7 +390,7 @@ export default function SubmitClient() {
 
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--frisson-faint)]">
-                    Frisson Season 4
+                    Frisson Season {CURRENT_SEASON}
                   </p>
                   <h1 className="m-0 mt-4 text-3xl font-semibold tracking-tight text-[var(--frisson-text)] md:text-4xl">
                     {isEditMode ? "나의 프리송 다시 남기기" : "나의 프리송 남기기"}
