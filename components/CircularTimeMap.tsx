@@ -19,6 +19,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import YouTube, { type YouTubeEvent, type YouTubeProps } from "react-youtube";
 import FrissonLetterModal from "@/components/FrissonLetterModal";
 import { CURRENT_SEASON, SONGS_TABLE } from "@/lib/currentSeason";
+import { isSongEditingOpen } from "@/lib/submissionWindow";
 import {
   DEFAULT_DOCUMENT_TITLE,
   getNowPlayingDocumentTitle,
@@ -26,7 +27,7 @@ import {
 } from "@/lib/nowPlaying";
 import { supabase } from "@/lib/supabase";
 
-type ViewSeason = 1 | 2 | 3 | 4 | typeof CURRENT_SEASON;
+type ViewSeason = 1 | 2 | 3 | 4 | 5 | typeof CURRENT_SEASON;
 type CircularSong = {
   id: string;
   season: ViewSeason;
@@ -640,7 +641,7 @@ export default function CircularTimeMap() {
     () => new Set()
   );
   const seasonOptions = useMemo(
-    () => [1, 2, 3, 4, CURRENT_SEASON] as ViewSeason[],
+    () => [1, 2, 3, 4, 5, CURRENT_SEASON] as ViewSeason[],
     []
   );
   useEffect(() => {
@@ -653,15 +654,15 @@ export default function CircularTimeMap() {
     return (
       allSongs.find(
         (song) =>
-          song.season === CURRENT_SEASON &&
+          song.season === season &&
           normalizeNickname(song.nickname) === normalizedCurrentNickname
       ) ?? null
     );
-  }, [allSongs, currentNickname]);
-  const shouldShowSubmitControl = season === CURRENT_SEASON;
+  }, [allSongs, currentNickname, season]);
+  const shouldShowSubmitControl = isSongEditingOpen();
   const submitHref = currentUserSeasonSong
-    ? `/submit?edit=${encodeURIComponent(currentUserSeasonSong.id)}`
-    : "/submit";
+    ? `/submit?season=${season}&edit=${encodeURIComponent(currentUserSeasonSong.id)}`
+    : `/submit?season=${season}`;
 
   const selectedTimeLabel = formatSongTime(selectedSong);
   const selectedVoteCount = selectedSong
@@ -2009,7 +2010,7 @@ export default function CircularTimeMap() {
               </button>
             ) : shouldShowSubmitControl ? (
               <Link
-                href="/submit"
+                href={`/submit?season=${season}`}
                 onClick={() => {
                   sessionStorage.removeItem("frissonSelectedTime");
                 }}
