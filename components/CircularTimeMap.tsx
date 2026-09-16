@@ -515,6 +515,7 @@ function normalizeSeason(value: number | null | undefined): ViewSeason {
     value === 2 ||
     value === 3 ||
     value === 4 ||
+    value === 5 ||
     value === CURRENT_SEASON
     ? value
     : CURRENT_SEASON;
