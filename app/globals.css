@@ -42,6 +42,12 @@ body {
   }
 }
 
+@keyframes frisson-record-counter-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
 @keyframes frisson-home-marquee-left {
   from {
     transform: translateX(0);
@@ -81,6 +87,13 @@ body {
   will-change: transform;
 }
 
+.frisson-record-counter-spin {
+  animation: frisson-record-counter-spin 14s linear infinite;
+  animation-play-state: paused;
+  transform-origin: center;
+  will-change: transform;
+}
+
 .frisson-marquee-left {
   animation: frisson-home-marquee-left var(--frisson-marquee-duration) linear infinite;
   will-change: transform;
@@ -97,6 +110,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .frisson-record-spin,
+  .frisson-record-counter-spin,
   .frisson-marquee-left,
   .frisson-marquee-right,
   .frisson-home-enter {

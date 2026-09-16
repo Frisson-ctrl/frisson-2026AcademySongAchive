@@ -1,1 +1,1 @@
-export const isSubmissionOpen = true; // 제출 마감 여부 설정(true: 제출 가능, false: 제출 마감!)
+export { isSongEditingOpen, SONG_EDIT_DEADLINE, SONG_EDIT_DEADLINE_LABEL } from "@/lib/submissionWindow";

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+import { CURRENT_SEASON } from "@/lib/currentSeason";
 import { DEFAULT_TIME_THEME } from "@/lib/timeTheme";
 
 const LOGIN_THEME = {
@@ -71,7 +72,7 @@ export default function Home() {
           FRISSON
         </p>
         <p className="text-[10px] font-semibold tracking-[0.22em] text-[var(--frisson-faint)]">
-          SEASON 05
+          SEASON {String(CURRENT_SEASON).padStart(2, "0")}
         </p>
       </header>
 
@@ -113,7 +114,7 @@ export default function Home() {
       </form>
 
       <p className="absolute bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--frisson-faint)] sm:bottom-8">
-        Apple Developer Academy 5
+        Apple Developer Academy {CURRENT_SEASON}
       </p>
     </main>
   );

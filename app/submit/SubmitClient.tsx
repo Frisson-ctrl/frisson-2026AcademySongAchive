@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { ArrowLeft, CirclePlus, Music4 } from "lucide-react";
-import { isSubmissionOpen } from "@/config";
 import { CURRENT_SEASON, SONGS_TABLE } from "@/lib/currentSeason";
+import { isSongEditingOpen, SONG_EDIT_DEADLINE_LABEL } from "@/lib/submissionWindow";
 import { supabase } from "@/lib/supabase";
 import { DEFAULT_TIME_THEME } from "@/lib/timeTheme";
 
@@ -73,6 +73,7 @@ export default function SubmitClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editSongId, setEditSongId] = useState<number | null>(null);
+  const [targetSeason, setTargetSeason] = useState<number>(CURRENT_SEASON);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const submitTheme = SUBMIT_THEME;
@@ -117,6 +118,13 @@ export default function SubmitClient() {
 
       setNickname(savedNickname);
 
+      const seasonParam = Number.parseInt(searchParams.get("season") ?? "", 10);
+      const requestedSeason =
+        Number.isInteger(seasonParam) && seasonParam >= 1 && seasonParam <= CURRENT_SEASON
+          ? seasonParam
+          : CURRENT_SEASON;
+      setTargetSeason(requestedSeason);
+
       // Check if in edit mode
       const editParam = searchParams.get("edit");
       if (editParam) {
@@ -129,7 +137,7 @@ export default function SubmitClient() {
           .from(SONGS_TABLE)
           .select("*")
           .eq("id", songId)
-          .eq("season", CURRENT_SEASON)
+          .eq("season", requestedSeason)
           .maybeSingle();
 
         if (error || !existingSong) {
@@ -139,7 +147,7 @@ export default function SubmitClient() {
         }
 
         if (normalizeNickname(existingSong.nickname) !== normalizeNickname(savedNickname)) {
-          alert("이번 시즌 내 곡만 수정할 수 있습니다.");
+          alert("내가 등록한 곡만 수정할 수 있습니다.");
           router.push("/songs");
           return;
         }
@@ -156,6 +164,11 @@ export default function SubmitClient() {
   }, [searchParams, router]);
 
   async function handleSubmit() {
+    if (!isSongEditingOpen()) {
+      alert(`곡 추가와 수정은 ${SONG_EDIT_DEADLINE_LABEL}에 마감되었습니다.`);
+      return;
+    }
+
     if (!nickname.trim() || !youtubeUrl.trim() || !comment.trim()) {
       alert("모든 항목을 입력해주세요.");
       return;
@@ -181,7 +194,7 @@ export default function SubmitClient() {
 
     try {
       if (isEditMode && editSongId) {
-        // Edit mode: Update the current user's current-season song only.
+        // Edit mode: Update the current user's song in the selected season.
         const thumbnailUrl = getYouTubeThumbnail(youtubeUrl);
         const title = await getYouTubeTitle(youtubeUrl);
 
@@ -199,7 +212,7 @@ export default function SubmitClient() {
           .from(SONGS_TABLE)
           .update(updatePayload)
           .eq("id", editSongId)
-          .eq("season", CURRENT_SEASON)
+          .eq("season", targetSeason)
           .eq("nickname", nickname)
           .select();
 
@@ -237,7 +250,7 @@ export default function SubmitClient() {
         const { data: existingSong, error: checkError } = await supabase
           .from(SONGS_TABLE)
           .select("id")
-          .eq("season", CURRENT_SEASON)
+          .eq("season", targetSeason)
           .eq("nickname", nickname)
           .maybeSingle();
 
@@ -253,13 +266,13 @@ export default function SubmitClient() {
 
         if (existingSong) {
           console.log("Song already exists for this nickname:", existingSong.id);
-          alert("이미 이번 시즌에 곡을 제출했습니다. 시즌마다 한 곡씩 등록할 수 있어요.");
+          alert("이미 이 시즌에 곡을 제출했습니다. 시즌마다 한 곡씩 등록할 수 있어요.");
           setIsSubmitting(false);
           return;
         }
 
         const insertPayload = {
-          season: CURRENT_SEASON,
+          season: targetSeason,
           nickname,
           youtube_url: youtubeUrl,
           comment,
@@ -318,7 +331,7 @@ export default function SubmitClient() {
     }
   }
 
-  if (!isSubmissionOpen && !isEditMode) {
+  if (!isSongEditingOpen()) {
     return (
       <main
         data-time-theme={submitTheme.name}
@@ -333,16 +346,16 @@ export default function SubmitClient() {
             </div>
 
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--frisson-faint)]">
-              Frisson Season {CURRENT_SEASON}
+              Frisson Season {targetSeason}
             </p>
             <h1 className="m-0 text-3xl font-semibold tracking-tight text-[var(--frisson-text)] md:text-4xl">
-              이번 시즌 제출이 마감되었습니다
+              곡 추가와 수정이 마감되었습니다
             </h1>
 
             <p className="mx-auto mt-5 max-w-lg text-sm leading-7 text-[var(--frisson-muted)] md:text-base">
-              현재는 새로운 곡을 제출할 수 없습니다.
+              모든 시즌의 곡 추가와 수정은 {SONG_EDIT_DEADLINE_LABEL}에 마감되었습니다.
               <br />
-              곡 목록에서 이번 시즌의 frisson 곡들을 감상해보세요.
+              곡 목록에서 프리송을 감상해보세요.
             </p>
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -390,20 +403,23 @@ export default function SubmitClient() {
 
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--frisson-faint)]">
-                    Frisson Season {CURRENT_SEASON}
+                    Frisson Season {targetSeason}
                   </p>
                   <h1 className="m-0 mt-4 text-3xl font-semibold tracking-tight text-[var(--frisson-text)] md:text-4xl">
                     {isEditMode ? "나의 프리송 다시 남기기" : "나의 프리송 남기기"}
                   </h1>
                   <p className="mt-5 text-sm leading-7 text-[var(--frisson-muted)] md:text-base">
-                    이번 시즌,
+                    시즌 {targetSeason},
                     <br />
                     당신의 전율을 일으키는 곡을 남겨주세요.
                   </p>
                   <p className="mt-4 text-sm leading-7 text-[var(--frisson-faint)] md:text-base">
-                    @{nickname} 님의 이번 시즌 프리송을 남겨주세요.
+                    @{nickname} 님의 시즌 {targetSeason} 프리송을 남겨주세요.
                     <br />
                     시즌마다 한 곡씩 등록할 수 있어요.
+                    {targetSeason !== CURRENT_SEASON && (
+                      <><br />이전 시즌도 {SONG_EDIT_DEADLINE_LABEL}까지 수정하거나 추가할 수 있어요.</>
+                    )}
                   </p>
                 </div>
               </div>
