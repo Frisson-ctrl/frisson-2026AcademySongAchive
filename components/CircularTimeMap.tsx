@@ -2111,7 +2111,11 @@ export default function CircularTimeMap() {
                     setCenterLabelImagePath(CENTER_LABEL_FALLBACK_IMAGE_PATH);
                   }
                 }}
-                style={{ width: "100%", height: "100%" }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  transform: season === CURRENT_SEASON ? "scale(1.04)" : undefined,
+                }}
               />
             </button>
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-[4.8%] w-[4.8%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/45 bg-[radial-gradient(circle,#0a0a0a_0%,#111_48%,#050505_100%)] shadow-[inset_0_0_12px_rgba(255,255,255,0.05)]" />
